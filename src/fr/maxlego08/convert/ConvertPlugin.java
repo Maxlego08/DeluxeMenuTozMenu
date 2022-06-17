@@ -1,11 +1,11 @@
 package fr.maxlego08.convert;
 
-import fr.maxlego08.convert.command.CommandManager;
-import fr.maxlego08.convert.inventory.ZInventoryManager;
-import fr.maxlego08.convert.listener.AdapterListener;
-import fr.maxlego08.convert.save.Config;
-import fr.maxlego08.convert.save.MessageLoader;
-import fr.maxlego08.convert.zcore.ZPlugin;
+import org.bukkit.Bukkit;
+import org.bukkit.plugin.java.JavaPlugin;
+
+import fr.maxlego08.convert.commands.CommandConvert;
+import fr.maxlego08.menu.MenuPlugin;
+import fr.maxlego08.menu.command.commands.CommandMenu;
 
 /**
  * System to create your plugins very simply Projet:
@@ -14,39 +14,24 @@ import fr.maxlego08.convert.zcore.ZPlugin;
  * @author Maxlego08
  *
  */
-public class ConvertPlugin extends ZPlugin {
+public class ConvertPlugin extends JavaPlugin {
+
+	private MenuPlugin menuPlugin;
+	private ConvertDeluxeMenu convert;;
 
 	@Override
 	public void onEnable() {
 
-		this.preEnable();
+		this.menuPlugin = (MenuPlugin) Bukkit.getPluginManager().getPlugin("zMenu");
+		this.convert = new ConvertDeluxeMenu(this.menuPlugin);
 
-		this.commandManager = new CommandManager(this);
-		this.inventoryManager = new ZInventoryManager(this);
+		CommandMenu commandMenu = this.menuPlugin.getCommandMenu();
+		commandMenu.addSubCommand(new CommandConvert(this.menuPlugin, this.convert));
 
-		/* Add Listener */
-
-		this.addListener(new AdapterListener(this));
-		this.addListener(inventoryManager);
-
-		/* Add Saver */
-		this.addSave(Config.getInstance());
-		this.addSave(new MessageLoader(this));
-		// addSave(new CooldownBuilder());
-
-		this.getSavers().forEach(saver -> saver.load(this.getPersist()));
-		
-		this.postEnable();
 	}
 
 	@Override
 	public void onDisable() {
-
-		this.preDisable();
-
-		this.getSavers().forEach(saver -> saver.save(this.getPersist()));
-
-		this.postDisable();
 
 	}
 
