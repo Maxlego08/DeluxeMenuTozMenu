@@ -215,6 +215,10 @@ public class ConvertDeluxeMenu extends ZUtils {
 
 		configuration.set(path + "type", "NONE");
 		configuration.set(path + "slot", item.getSlot());
+		
+		if (item.updatePlaceholders()){
+			configuration.set(path + "update", true);	
+		}
 
 		this.saveClick(item.getClickHandler(), configuration, path, ClickType.UNKNOWN);
 		this.saveClick(item.getRightClickHandler(), configuration, path, ClickType.RIGHT);
