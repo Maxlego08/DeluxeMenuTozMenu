@@ -2,6 +2,7 @@ package fr.maxlego08.convert;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.bukkit.Material;
 
@@ -54,6 +55,33 @@ public class Button {
 
 	public void add(int slot) {
 		this.slots.add(slot);
+	}
+
+	public List<String> toRange() {
+		List<String> strings = new ArrayList<>();
+
+		if (this.slots.size() <= 4) {
+			return this.slots.stream().map(String::valueOf).collect(Collectors.toList());
+		}
+
+		int start;
+		int oldValue = start = this.slots.get(0);
+		for (int index = 0; index != this.slots.size(); index++) {
+
+			int slot = this.slots.get(index);
+			int diff = slot - oldValue;
+			if (diff >= 2) {
+				strings.add(start + "-" + oldValue);
+				start = slot;
+			}
+			oldValue = slot;
+
+			if (index == this.slots.size() - 1) {
+				strings.add(start + "-" + oldValue);
+			}
+		}
+
+		return strings;
 	}
 
 	/*

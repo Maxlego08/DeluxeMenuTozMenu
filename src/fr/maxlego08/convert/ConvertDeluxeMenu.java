@@ -60,7 +60,6 @@ public class ConvertDeluxeMenu extends ZUtils {
 			return;
 		}
 
-		this.buttons.clear();
 		this.isRunning = true;
 
 		File folderInventories = new File(this.plugin.getDataFolder(), "inventories/convert");
@@ -78,6 +77,8 @@ public class ConvertDeluxeMenu extends ZUtils {
 		Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
 
 			for (Menu menu : menus) {
+
+				this.buttons.clear();
 
 				InventoryType inventoryType = menu.getInventoryType();
 
@@ -214,7 +215,7 @@ public class ConvertDeluxeMenu extends ZUtils {
 			if (button.getSlots().size() > 1) {
 				configuration.set(path + "slot", null);
 				configuration.set(path + "type", "NONE_SLOT");
-				configuration.set(path + "slots", button.getSlots());
+				configuration.set(path + "slots", button.toRange());
 			}
 
 		}
@@ -231,10 +232,7 @@ public class ConvertDeluxeMenu extends ZUtils {
 	private void saveButton(MenuItem item, YamlConfiguration configuration, String path) {
 
 		configuration.set(path + "type", "NONE");
-
-		if (item.getSlot() != 0) {
-			configuration.set(path + "slot", item.getSlot());
-		}
+		configuration.set(path + "slot", item.getSlot());
 
 		if (item.updatePlaceholders()) {
 			configuration.set(path + "update", true);
