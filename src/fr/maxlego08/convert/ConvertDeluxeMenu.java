@@ -43,6 +43,8 @@ public class ConvertDeluxeMenu extends ZUtils {
 	private final MenuPlugin plugin;
 	private boolean isRunning = false;
 
+	private final List<Button> buttons = new ArrayList<>();
+
 	/**
 	 * @param plugin
 	 */
@@ -58,6 +60,7 @@ public class ConvertDeluxeMenu extends ZUtils {
 			return;
 		}
 
+		this.buttons.clear();
 		this.isRunning = true;
 
 		File folderInventories = new File(this.plugin.getDataFolder(), "inventories/convert");
@@ -188,7 +191,10 @@ public class ConvertDeluxeMenu extends ZUtils {
 			if (treeMap.size() == 1) {
 
 				MenuItem item = treeMap.firstEntry().getValue();
-				this.saveButton(item, configuration, path);
+
+				if (!alreadyExist(item, path)) {
+					this.saveButton(item, configuration, path);
+				}
 
 			} else {
 
@@ -202,6 +208,17 @@ public class ConvertDeluxeMenu extends ZUtils {
 			}
 		});
 
+		for (Button button : this.buttons) {
+
+			String path = button.getPath();
+			if (button.getSlots().size() > 1) {
+				configuration.set(path + "slot", null);
+				configuration.set(path + "type", "NONE_SLOT");
+				configuration.set(path + "slots", button.getSlots());
+			}
+
+		}
+
 	}
 
 	/**
@@ -214,10 +231,13 @@ public class ConvertDeluxeMenu extends ZUtils {
 	private void saveButton(MenuItem item, YamlConfiguration configuration, String path) {
 
 		configuration.set(path + "type", "NONE");
-		configuration.set(path + "slot", item.getSlot());
-		
-		if (item.updatePlaceholders()){
-			configuration.set(path + "update", true);	
+
+		if (item.getSlot() != 0) {
+			configuration.set(path + "slot", item.getSlot());
+		}
+
+		if (item.updatePlaceholders()) {
+			configuration.set(path + "update", true);
 		}
 
 		this.saveClick(item.getClickHandler(), configuration, path, ClickType.UNKNOWN);
@@ -226,7 +246,6 @@ public class ConvertDeluxeMenu extends ZUtils {
 
 		this.saveViewRequirement(item, configuration, path);
 		this.saveItem(item, configuration, path + "item.");
-
 	}
 
 	/**
@@ -552,6 +571,29 @@ public class ConvertDeluxeMenu extends ZUtils {
 			break;
 		}
 		return null;
+	}
+
+	private boolean alreadyExist(MenuItem item, String path) {
+
+		if (item.getMaterial() != null && item.getDisplayName() != null) {
+
+			Button button = new Button(path, item.getMaterial(), item.getDisplayName());
+
+			Optional<Button> optional = this.buttons.stream().filter(e -> e.equals(button)).findFirst();
+
+			if (optional.isPresent()) {
+
+				Button existButton = optional.get();
+				existButton.add(item.getSlot());
+
+				return true;
+			}
+
+			button.add(item.getSlot());
+			this.buttons.add(button);
+		}
+
+		return false;
 	}
 
 }
