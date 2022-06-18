@@ -8,6 +8,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
@@ -15,9 +16,12 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.ItemFlag;
 
+import com.extendedclip.deluxemenus.action.ClickAction;
+import com.extendedclip.deluxemenus.action.ClickHandler;
 import com.extendedclip.deluxemenus.menu.Menu;
 import com.extendedclip.deluxemenus.menu.MenuItem;
 import com.extendedclip.deluxemenus.requirement.HasPermissionRequirement;
@@ -28,6 +32,7 @@ import com.extendedclip.deluxemenus.requirement.RequirementType;
 
 import fr.maxlego08.menu.MenuPlugin;
 import fr.maxlego08.menu.api.enums.PlaceholderAction;
+import fr.maxlego08.menu.api.enums.XSound;
 import fr.maxlego08.menu.zcore.logger.Logger;
 import fr.maxlego08.menu.zcore.utils.ZUtils;
 
@@ -108,7 +113,13 @@ public class ConvertDeluxeMenu extends ZUtils {
 
 				configuration.set("name", menu.getMenuTitle());
 				configuration.set("size", menu.getSize());
-				configuration.set("updateInterval", menu.getUpdateInterval());
+				try {
+					int updateInterval = getField(menu, "updateInterval");
+					if (updateInterval != 0) {
+						configuration.set("updateInterval", updateInterval);
+					}
+				} catch (Exception e1) {
+				}
 				configuration.set("items", "[]");
 
 				try {
@@ -147,22 +158,16 @@ public class ConvertDeluxeMenu extends ZUtils {
 			String path = "items." + value + ".";
 
 			if (treeMap.size() == 1) {
+
 				MenuItem item = treeMap.firstEntry().getValue();
-				System.out.println(value + " - Slot: " + item.getSlot());
 				this.saveButton(item, configuration, path);
+
 			} else {
-				treeMap.forEach((value2, item) -> {
-					System.out.println(
-							value + " - " + value2 + " - Slot: " + item.getSlot() + " Priority: " + item.getPriority());
-					// this.saveButton(item, configuration, "items." + value +
-					// ".");
-				});
 
 				List<MenuItem> sortItems = treeMap.values().stream()
 						.sorted(Comparator.comparingInt(MenuItem::getPriority)).collect(Collectors.toList());
 
 				for (MenuItem item : sortItems) {
-					System.out.println(value + " - X - Slot: " + item.getSlot() + " Priority: " + item.getPriority());
 					this.saveButton(item, configuration, path);
 					path += "else.";
 				}
@@ -183,9 +188,126 @@ public class ConvertDeluxeMenu extends ZUtils {
 		configuration.set(path + "type", "NONE");
 		configuration.set(path + "slot", item.getSlot());
 
+		this.saveClick(item.getClickHandler(), configuration, path, ClickType.UNKNOWN);
+		this.saveClick(item.getRightClickHandler(), configuration, path, ClickType.RIGHT);
+		this.saveClick(item.getLeftClickHandler(), configuration, path, ClickType.LEFT);
+
 		this.saveViewRequirement(item, configuration, path);
 		this.saveItem(item, configuration, path + "item.");
 
+	}
+
+	/**
+	 * Permet de sauvegarder les actions du click
+	 * 
+	 * @param item
+	 * @param configuration
+	 * @param path
+	 */
+	private void saveClick(ClickHandler clickHandler, YamlConfiguration configuration, String path,
+			ClickType clickType) {
+		if (clickHandler != null) {
+
+			List<String> messages = new ArrayList<>();
+			List<String> commands = new ArrayList<>();
+			List<String> consoleCommands = new ArrayList<>();
+
+			try {
+				List<ClickAction> actions = getField(clickHandler, "val$actions");
+				for (ClickAction action : actions) {
+					String value = action.getExecutable();
+					switch (action.getType()) {
+					case BROADCAST:
+						break;
+					case BROADCAST_JSON:
+						break;
+					case BROADCAST_SOUND:
+						break;
+					case BROADCAST_WORLD_SOUND:
+						break;
+					case CHAT:
+						break;
+					case CLOSE:
+						break;
+					case CONNECT:
+						break;
+					case CONSOLE:
+						consoleCommands.add(value);
+						break;
+					case GIVE_EXP:
+						break;
+					case GIVE_MONEY:
+						break;
+					case GIVE_PERM:
+						break;
+					case JSON_BROADCAST:
+						break;
+					case JSON_MESSAGE:
+						break;
+					case MESSAGE:
+						messages.add(value);
+						break;
+					case META:
+						break;
+					case OPEN_GUI_MENU:
+					case OPEN_MENU:
+						configuration.set(path + "type", "INVENTORY");
+						configuration.set(path + "inventory", value);
+						configuration.set(path + "plugin", "zMenu");
+						break;
+					case PLACEHOLDER:
+						break;
+					case PLAYER:
+						commands.add(value);
+						break;
+					case PLAYER_COMMAND_EVENT:
+						break;
+					case PLAY_SOUND:
+						Optional<XSound> optional = XSound.matchXSound(value);
+						if (optional.isPresent()) {
+							configuration.set(path + "sound", optional.get().name());
+							configuration.set(path + "pitch", 1);
+							configuration.set(path + "volume", 1);
+						}
+						break;
+					case REFRESH:
+						configuration.set(path + "refreshOnClick", true);
+						break;
+					case TAKE_EXP:
+						break;
+					case TAKE_MONEY:
+						break;
+					case TAKE_PERM:
+						break;
+					default:
+						break;
+					}
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+
+			if (messages.size() > 0) {
+				configuration.set(path + "messages", messages);
+			}
+			
+			if (commands.size() > 0){
+				configuration.set(path + "commands", commands);
+				configuration.set(path + "type", "PERFORM_COMMAND");
+			}
+			
+			if (consoleCommands.size() > 0){
+				configuration.set(path + "type", "PERFORM_COMMAND");
+				if (clickType == ClickType.UNKNOWN){
+					configuration.set(path + "consoleCommands", consoleCommands);
+				} else if (clickType == ClickType.RIGHT){
+					configuration.set(path + "consoleRightCommands", consoleCommands);
+				} else if (clickType == ClickType.LEFT){
+					configuration.set(path + "consoleLeftCommands", consoleCommands);
+				}
+			}
+
+		}
 	}
 
 	/**
