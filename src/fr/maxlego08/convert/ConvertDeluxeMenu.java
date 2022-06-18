@@ -49,19 +49,6 @@ public class ConvertDeluxeMenu extends ZUtils {
 		this.plugin = plugin;
 	}
 
-	/*
-	 * Menu.getAllMenus().forEach(menu -> {
-	 * 
-	 * menu.getMenuItems().forEach((i, b) -> {
-	 * 
-	 * System.out.println(i); System.out.println(b); b.forEach((c, d) -> {
-	 * System.out.println(c); System.out.println(d); });
-	 * 
-	 * });
-	 * 
-	 * });
-	 */
-
 	public void convert(CommandSender sender) {
 
 		if (this.isRunning) {
@@ -228,6 +215,7 @@ public class ConvertDeluxeMenu extends ZUtils {
 					case CHAT:
 						break;
 					case CLOSE:
+						configuration.set(path + "closeInventory", true);
 						break;
 					case CONNECT:
 						break;
@@ -290,19 +278,19 @@ public class ConvertDeluxeMenu extends ZUtils {
 			if (messages.size() > 0) {
 				configuration.set(path + "messages", messages);
 			}
-			
-			if (commands.size() > 0){
+
+			if (commands.size() > 0) {
 				configuration.set(path + "commands", commands);
 				configuration.set(path + "type", "PERFORM_COMMAND");
 			}
-			
-			if (consoleCommands.size() > 0){
+
+			if (consoleCommands.size() > 0) {
 				configuration.set(path + "type", "PERFORM_COMMAND");
-				if (clickType == ClickType.UNKNOWN){
+				if (clickType == ClickType.UNKNOWN) {
 					configuration.set(path + "consoleCommands", consoleCommands);
-				} else if (clickType == ClickType.RIGHT){
+				} else if (clickType == ClickType.RIGHT) {
 					configuration.set(path + "consoleRightCommands", consoleCommands);
-				} else if (clickType == ClickType.LEFT){
+				} else if (clickType == ClickType.LEFT) {
 					configuration.set(path + "consoleLeftCommands", consoleCommands);
 				}
 			}
@@ -428,7 +416,8 @@ public class ConvertDeluxeMenu extends ZUtils {
 
 				try {
 					String permission = this.getField(requirement, "perm");
-					configuration.set(path + "permission", permission);
+					boolean isReverse = this.getField(requirement, "invert");
+					configuration.set(path + "permission", (isReverse ? "!" : "") + permission);
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
