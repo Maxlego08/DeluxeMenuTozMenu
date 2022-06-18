@@ -74,8 +74,6 @@ public class ConvertDeluxeMenu extends ZUtils {
 
 			for (Menu menu : menus) {
 
-				System.out.println("---");
-
 				InventoryType inventoryType = menu.getInventoryType();
 
 				if (inventoryType != null && inventoryType != InventoryType.PLAYER) {
@@ -84,6 +82,13 @@ public class ConvertDeluxeMenu extends ZUtils {
 				}
 
 				String fileName = menu.getName();
+
+				try {
+					this.createCommand(menu, new File(folderCommands, fileName + ".yml"), fileName);
+				} catch (IOException e2) {
+					e2.printStackTrace();
+				}
+
 				File file = new File(folderInventories, fileName + ".yml");
 				if (file.exists()) {
 					Logger.info("inventories/convert/" + fileName + ".yml already exist, skip");
@@ -127,6 +132,40 @@ public class ConvertDeluxeMenu extends ZUtils {
 			message(sender, "§7Dont forget to run §f/zmenu reload§7.");
 			this.isRunning = false;
 		});
+
+	}
+
+	/**
+	 * Allows you to create a command
+	 * 
+	 * @param menu
+	 * @param file
+	 * @param name
+	 * @throws IOException
+	 */
+	private void createCommand(Menu menu, File file, String name) throws IOException {
+
+		if (file.exists()) {
+			Logger.info("commands/convert/" + name + ".yml already exist, skip");
+			return;
+		}
+
+		file.createNewFile();
+
+		YamlConfiguration configuration = YamlConfiguration.loadConfiguration(file);
+
+		String path = "commands." + name + ".";
+
+		configuration.set(path + "command", menu.getName());
+		configuration.set(path + "inventory", name);
+		if (menu.getAliases().size() > 0) {
+			configuration.set(path + "aliases", menu.getAliases());
+		}
+		if (menu.getPermission() != null) {
+			configuration.set(path + "permission", menu.getPermission());
+		}
+
+		configuration.save(file);
 
 	}
 
