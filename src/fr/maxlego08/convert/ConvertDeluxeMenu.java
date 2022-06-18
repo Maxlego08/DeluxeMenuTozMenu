@@ -19,6 +19,7 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.ItemFlag;
+import org.bukkit.inventory.ItemStack;
 
 import com.extendedclip.deluxemenus.action.ClickAction;
 import com.extendedclip.deluxemenus.action.ClickHandler;
@@ -35,6 +36,7 @@ import fr.maxlego08.menu.api.enums.PlaceholderAction;
 import fr.maxlego08.menu.api.enums.XSound;
 import fr.maxlego08.menu.zcore.logger.Logger;
 import fr.maxlego08.menu.zcore.utils.ZUtils;
+import fr.maxlego08.menu.zcore.utils.nms.NMSUtils;
 
 public class ConvertDeluxeMenu extends ZUtils {
 
@@ -348,6 +350,19 @@ public class ConvertDeluxeMenu extends ZUtils {
 
 		if (item.getMaterial() != null) {
 			configuration.set(path + "material", item.getMaterial().name());
+		}
+
+		if (item.isBaseHead()) {
+			ItemStack itemStack = playerHead();
+			configuration.set(path + "material", itemStack.getType().name());
+			if (!NMSUtils.isNewVersion()) {
+				configuration.set(path + "data", "3");
+			}
+			configuration.set(path + "url", item.getHeadOwner());
+		}
+
+		if (item.isHeadDbHead()) {
+			configuration.set(path + "material", item.getHeadOwner().replace("-", ":"));
 		}
 
 		if (item.isPlaceholderMaterial() && item.getPlaceholderMaterial() != null) {
