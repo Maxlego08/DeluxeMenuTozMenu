@@ -3,6 +3,7 @@ package fr.maxlego08.convert;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.bukkit.Material;
 
@@ -57,11 +58,11 @@ public class Button {
 		this.slots.add(slot);
 	}
 
-	public List<String> toRange() {
+	public List<?> toRange() {
 		List<String> strings = new ArrayList<>();
 
 		if (this.slots.size() <= 4) {
-			return this.slots.stream().map(String::valueOf).collect(Collectors.toList());
+			return this.slots.stream().sorted().collect(Collectors.toList());
 		}
 
 		int start;
@@ -77,10 +78,32 @@ public class Button {
 			oldValue = slot;
 
 			if (index == this.slots.size() - 1) {
-				strings.add(start + "-" + oldValue);
+				strings.add(Math.min(start, oldValue) + "-" + Math.max(start, oldValue));
 			}
 		}
 
+		// To be sure that there are no worries we will do a reverse and we will see if all the slots are present, if not then we will put a classic list.
+		List<Integer> slots = new ArrayList<>();
+		if (strings.size() > 0) {
+			for (String line : strings) {
+				if (line.contains("-")) {
+					try {
+						String[] values = line.split("-");
+						int from = Integer.valueOf(values[0]);
+						int to = Integer.valueOf(values[1]) + 1;
+						slots.addAll(IntStream.range(Math.min(from, to), Math.max(from, to)).boxed().collect(Collectors.toList()));
+					} catch (Exception ignored) {
+						ignored.printStackTrace();
+					}
+				}
+
+			}
+		}
+		
+		if (!slots.equals(this.slots)){
+			return this.slots.stream().sorted().collect(Collectors.toList());
+		}
+		
 		return strings;
 	}
 
