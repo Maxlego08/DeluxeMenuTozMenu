@@ -338,6 +338,10 @@ public class ConvertDeluxeMenu extends ZUtils {
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
+			
+			if (configuration.getString(path + "type").equalsIgnoreCase("INVENTORY")){
+				configuration.set(path + "closeInventory", null);
+			}
 
 			if (messages.size() > 0) {
 				configuration.set(path + "messages", changeColor(messages));
