@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
@@ -19,7 +21,6 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.ItemFlag;
-import org.bukkit.inventory.ItemStack;
 
 import com.extendedclip.deluxemenus.action.ClickAction;
 import com.extendedclip.deluxemenus.action.ClickHandler;
@@ -30,6 +31,7 @@ import com.extendedclip.deluxemenus.requirement.InputResultRequirement;
 import com.extendedclip.deluxemenus.requirement.Requirement;
 import com.extendedclip.deluxemenus.requirement.RequirementList;
 import com.extendedclip.deluxemenus.requirement.RequirementType;
+import com.extendedclip.deluxemenus.utils.SkullUtils;
 
 import fr.maxlego08.menu.MenuPlugin;
 import fr.maxlego08.menu.api.enums.PlaceholderAction;
@@ -338,7 +340,7 @@ public class ConvertDeluxeMenu extends ZUtils {
 			}
 
 			if (messages.size() > 0) {
-				configuration.set(path + "messages", messages);
+				configuration.set(path + "messages", changeColor(messages));
 			}
 
 			if (commands.size() > 0) {
@@ -373,17 +375,37 @@ public class ConvertDeluxeMenu extends ZUtils {
 			configuration.set(path + "material", item.getMaterial().name());
 		}
 
-		if (item.isBaseHead()) {
-			ItemStack itemStack = playerHead();
-			configuration.set(path + "material", itemStack.getType().name());
-			if (!NMSUtils.isNewVersion()) {
-				configuration.set(path + "data", "3");
-			}
-			configuration.set(path + "url", item.getHeadOwner());
-		}
+		if (item.isHead() && item.getHeadOwner() != null) {
+			if (item.isBaseHead()) {
 
-		if (item.isHeadDbHead()) {
-			configuration.set(path + "material", item.getHeadOwner().replace("-", ":"));
+				configuration.set(path + "material", playerHead().getType().name());
+				if (!NMSUtils.isNewVersion()) {
+					configuration.set(path + "data", "3");
+				}
+				configuration.set(path + "url", item.getHeadOwner());
+
+			} else if (item.isHeadDbHead()) {
+
+				configuration.set(path + "material", item.getHeadOwner().replace("-", ":"));
+
+			} else if (item.isTextureHead()) {
+
+				String url = SkullUtils.getEncoded(item.getHeadOwner());
+				configuration.set(path + "material", playerHead().getType().name());
+				if (!NMSUtils.isNewVersion()) {
+					configuration.set(path + "data", "3");
+				}
+				configuration.set(path + "url", url);
+
+			} else {
+
+				configuration.set(path + "playerHead", item.getHeadOwner());
+				configuration.set(path + "material", playerHead().getType().name());
+				if (!NMSUtils.isNewVersion()) {
+					configuration.set(path + "data", "3");
+				}
+
+			}
 		}
 
 		if (item.isPlaceholderMaterial() && item.getPlaceholderMaterial() != null) {
@@ -403,11 +425,11 @@ public class ConvertDeluxeMenu extends ZUtils {
 		}
 
 		if (item.getDisplayName() != null) {
-			configuration.set(path + "name", item.getDisplayName());
+			configuration.set(path + "name", changeColor(item.getDisplayName()));
 		}
 
 		if (item.getLore() != null) {
-			configuration.set(path + "lore", item.getLore());
+			configuration.set(path + "lore", changeColor(item.getLore()));
 		}
 
 		this.saveEnchantments(item, configuration, path);
@@ -592,6 +614,25 @@ public class ConvertDeluxeMenu extends ZUtils {
 		}
 
 		return false;
+	}
+
+	private List<String> changeColor(List<String> strings) {
+		return strings.stream().map(this::changeColor).collect(Collectors.toList());
+	}
+
+	private String changeColor(String string) {
+
+		if (NMSUtils.isHexColor()) {
+			Pattern pattern = Pattern.compile("&#[a-fA-F0-9]{6}");
+			Matcher matcher = pattern.matcher(string);
+			while (matcher.find()) {
+				String group = matcher.group();
+				string = string.replace(group, group.substring(1, group.length()));
+				matcher = pattern.matcher(string);
+			}
+		}
+
+		return string;
 	}
 
 }
