@@ -338,8 +338,8 @@ public class ConvertDeluxeMenu extends ZUtils {
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-			
-			if (configuration.getString(path + "type").equalsIgnoreCase("INVENTORY")){
+
+			if (configuration.getString(path + "type").equalsIgnoreCase("INVENTORY")) {
 				configuration.set(path + "closeInventory", null);
 			}
 
@@ -601,7 +601,7 @@ public class ConvertDeluxeMenu extends ZUtils {
 
 		if (item.getMaterial() != null && item.getDisplayName() != null) {
 
-			Button button = new Button(path, item.getMaterial(), item.getDisplayName());
+			Button button = new Button(path, item.getMaterial(), item.getDisplayName(), item.getLore());
 
 			Optional<Button> optional = this.buttons.stream().filter(e -> e.equals(button)).findFirst();
 
