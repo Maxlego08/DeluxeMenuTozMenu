@@ -44,6 +44,7 @@ public class ConvertDeluxeMenu extends ZUtils {
 
 	private final MenuPlugin plugin;
 	private boolean isRunning = false;
+	private final String placeholderArgumentFormat = "%%zmenu_argument_%s%%";
 
 	private final List<Button> buttons = new ArrayList<>();
 
@@ -636,7 +637,22 @@ public class ConvertDeluxeMenu extends ZUtils {
 			}
 		}
 
+		return convertArgument(string);
+	}
+
+	private String convertArgument(String string) {
+
+		Pattern pattern = Pattern.compile("[{]([^}]+)[}]");
+		Matcher matcher = pattern.matcher(string);
+		while (matcher.find()) {
+			String group = matcher.group(0);
+			String argument = matcher.group(1);
+			string = string.replace(group, String.format(this.placeholderArgumentFormat, argument));
+			matcher = pattern.matcher(string);
+		}
+
 		return string;
+
 	}
 
 }
