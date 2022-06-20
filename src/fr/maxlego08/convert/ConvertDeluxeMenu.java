@@ -174,6 +174,14 @@ public class ConvertDeluxeMenu extends ZUtils {
 			configuration.set(path + "permission", menu.getPermission());
 		}
 
+		try {
+			List<String> args = getField(menu, "args");
+			if (args != null) {
+				configuration.set(path + "arguments", args);
+			}
+		} catch (Exception e) {
+		}
+
 		configuration.save(file);
 
 	}
@@ -513,9 +521,7 @@ public class ConvertDeluxeMenu extends ZUtils {
 		}
 
 		for (Requirement requirement : requirements.getRequirements()) {
-
 			if (requirement instanceof HasPermissionRequirement) {
-
 				try {
 					String permission = this.getField(requirement, "perm");
 					boolean isReverse = this.getField(requirement, "invert");
@@ -523,9 +529,7 @@ public class ConvertDeluxeMenu extends ZUtils {
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
-
 			} else if (requirement instanceof InputResultRequirement) {
-
 				try {
 
 					String input = getField(requirement, "input");
@@ -540,11 +544,8 @@ public class ConvertDeluxeMenu extends ZUtils {
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
-
 			}
-
 		}
-
 	}
 
 	@SuppressWarnings("unchecked")
@@ -554,6 +555,12 @@ public class ConvertDeluxeMenu extends ZUtils {
 		return (T) field.get(object);
 	}
 
+	/**
+	 * Transform {@link RequirementType} to {@link PlaceholderAction}
+	 * 
+	 * @param type
+	 * @return {@link PlaceholderAction}
+	 */
 	private PlaceholderAction convertAction(RequirementType type) {
 		switch (type) {
 		case DOES_NOT_HAVE_EXP:
@@ -598,6 +605,13 @@ public class ConvertDeluxeMenu extends ZUtils {
 		return null;
 	}
 
+	/**
+	 * Check if button already exist
+	 * 
+	 * @param item
+	 * @param path
+	 * @return boolean
+	 */
 	private boolean alreadyExist(MenuItem item, String path) {
 
 		if (item.getMaterial() != null && item.getDisplayName() != null) {
@@ -621,10 +635,22 @@ public class ConvertDeluxeMenu extends ZUtils {
 		return false;
 	}
 
+	/**
+	 * Replace hex color &#<color> to #<color>
+	 * 
+	 * @param strings
+	 * @return strings
+	 */
 	private List<String> changeColor(List<String> strings) {
 		return strings.stream().map(this::changeColor).collect(Collectors.toList());
 	}
 
+	/**
+	 * Replace hex color &#<color> to #<color>
+	 * 
+	 * @param string
+	 * @return string
+	 */
 	private String changeColor(String string) {
 
 		if (NMSUtils.isHexColor()) {
@@ -640,6 +666,12 @@ public class ConvertDeluxeMenu extends ZUtils {
 		return convertArgument(string);
 	}
 
+	/**
+	 * Replace command argument to placeholder
+	 * 
+	 * @param string
+	 * @return string
+	 */
 	private String convertArgument(String string) {
 
 		Pattern pattern = Pattern.compile("[{]([^}]+)[}]");
