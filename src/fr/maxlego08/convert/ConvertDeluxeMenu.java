@@ -94,7 +94,7 @@ public class ConvertDeluxeMenu extends ZUtils {
 					continue;
 				}
 
-				String fileName = menu.getName();
+				String fileName = menu.getMenuName();
 
 				try {
 					this.createCommand(menu, new File(folderCommands, fileName + ".yml"), fileName);
