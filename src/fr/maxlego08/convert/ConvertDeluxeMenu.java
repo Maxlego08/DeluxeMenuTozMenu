@@ -112,7 +112,9 @@ public class ConvertDeluxeMenu extends ZUtils {
 
 				YamlConfiguration configuration = YamlConfiguration.loadConfiguration(file);
 
-				configuration.set("name", menu.getMenuTitle());
+				if (menu.getMenuTitle() != null){
+				configuration.set("name", colorReverse(menu.getMenuTitle()));
+				}
 				configuration.set("size", menu.getSize());
 				try {
 					int updateInterval = getField(menu, "updateInterval");
