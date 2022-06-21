@@ -732,6 +732,26 @@ public class ConvertDeluxeMenu extends ZUtils {
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
+			} else if (requirement instanceof HasMoneyRequirement) {
+
+				try {
+
+					boolean invert = getField(requirement, "invert");
+					String placeholder = getField(requirement, "placeholder");
+					long amount = getField(requirement, "amount");
+
+					if (placeholder == null) {
+						placeholder = "%vault_eco_balance%";
+					}
+
+					PlaceholderAction action = invert ? PlaceholderAction.LOWER : PlaceholderAction.SUPERIOR_OR_EQUAL;
+					configuration.set(path + "action", action.name());
+					configuration.set(path + "placeHolder", placeholder);
+					configuration.set(path + "value", amount);
+
+				} catch (Exception e) {
+				}
+
 			}
 		}
 	}
