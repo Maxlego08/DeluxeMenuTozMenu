@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
@@ -26,11 +27,14 @@ import com.extendedclip.deluxemenus.action.ClickAction;
 import com.extendedclip.deluxemenus.action.ClickHandler;
 import com.extendedclip.deluxemenus.menu.Menu;
 import com.extendedclip.deluxemenus.menu.MenuItem;
+import com.extendedclip.deluxemenus.requirement.HasItemRequirement;
+import com.extendedclip.deluxemenus.requirement.HasMoneyRequirement;
 import com.extendedclip.deluxemenus.requirement.HasPermissionRequirement;
 import com.extendedclip.deluxemenus.requirement.InputResultRequirement;
 import com.extendedclip.deluxemenus.requirement.Requirement;
 import com.extendedclip.deluxemenus.requirement.RequirementList;
 import com.extendedclip.deluxemenus.requirement.RequirementType;
+import com.extendedclip.deluxemenus.requirement.wrappers.ItemWrapper;
 import com.extendedclip.deluxemenus.utils.SkullUtils;
 
 import fr.maxlego08.menu.MenuPlugin;
@@ -112,8 +116,8 @@ public class ConvertDeluxeMenu extends ZUtils {
 
 				YamlConfiguration configuration = YamlConfiguration.loadConfiguration(file);
 
-				if (menu.getMenuTitle() != null){
-				configuration.set("name", colorReverse(menu.getMenuTitle()));
+				if (menu.getMenuTitle() != null) {
+					configuration.set("name", colorReverse(menu.getMenuTitle()));
 				}
 				configuration.set("size", menu.getSize());
 				try {
@@ -251,12 +255,193 @@ public class ConvertDeluxeMenu extends ZUtils {
 			configuration.set(path + "update", true);
 		}
 
-		this.saveClick(item.getClickHandler(), configuration, path, ClickType.UNKNOWN);
-		this.saveClick(item.getRightClickHandler(), configuration, path, ClickType.RIGHT);
-		this.saveClick(item.getLeftClickHandler(), configuration, path, ClickType.LEFT);
+		if (!this.saveClickRequirement(item.getClickRequirements(), "click_requirement", configuration, path,
+				item.getClickHandler(), ClickType.RIGHT, ClickType.LEFT)) {
+			this.saveClick(item.getClickHandler(), configuration, path, ClickType.UNKNOWN);
+		}
+
+		if (!this.saveClickRequirement(item.getRightClickRequirements(), "right_click_requirement", configuration, path,
+				item.getRightClickHandler(), ClickType.RIGHT)) {
+			this.saveClick(item.getRightClickHandler(), configuration, path, ClickType.RIGHT);
+		}
+
+		if (!this.saveClickRequirement(item.getLeftClickRequirements(), "left_click_requirement", configuration, path,
+				item.getLeftClickHandler(), ClickType.LEFT)) {
+			this.saveClick(item.getLeftClickHandler(), configuration, path, ClickType.LEFT);
+		}
+
+		this.saveClickRequirement(item.getShiftLeftClickRequirements(), "shift_left_click_requirement", configuration,
+				path, item.getShiftLeftClickHandler(), ClickType.SHIFT_LEFT);
+
+		this.saveClickRequirement(item.getShiftRightClickRequirements(), "shift_right_click_requirement", configuration,
+				path, item.getShiftRightClickHandler(), ClickType.SHIFT_RIGHT);
+
+		this.saveClickRequirement(item.getMiddleClickRequirements(), "middle_click_requirement", configuration, path,
+				item.getMiddleClickHandler(), ClickType.MIDDLE);
 
 		this.saveViewRequirement(item, configuration, path);
 		this.saveItem(item, configuration, path + "item.");
+	}
+
+	/**
+	 * Allows you to save a click with a requirement
+	 * 
+	 * @param requirements
+	 * @param configuration
+	 * @param path
+	 * @param clickHandler
+	 * @return boolean
+	 */
+	private boolean saveClickRequirement(RequirementList requirements, String name, YamlConfiguration configuration,
+			String path, ClickHandler allow, ClickType... clickTypes) {
+
+		if (requirements == null || allow == null) {
+			return false;
+		}
+
+		ClickHandler deny = requirements.getDenyHandler();
+
+		configuration.set(path + "type", "PERFORM_COMMAND");
+
+		String currentPath = path + "actions." + name + ".";
+
+		List<String> clicks = Arrays.asList(clickTypes).stream().map(ClickType::name).collect(Collectors.toList());
+		configuration.set(currentPath + "clicks", clicks);
+
+		this.saveClickHandler(allow, configuration, currentPath + "allow.");
+		if (deny != null) {
+			this.saveClickHandler(deny, configuration, currentPath + "deny.");
+		}
+
+		int index = 1;
+		String permissionPath = currentPath + "permissions.";
+
+		for (Requirement requirement : requirements.getRequirements()) {
+
+			if (requirement instanceof HasPermissionRequirement) {
+				try {
+
+					String permission = this.getField(requirement, "perm");
+					boolean isReverse = this.getField(requirement, "invert");
+
+					String cPath = permissionPath + "permission_" + (index++) + ".";
+					configuration.set(cPath + "permission", (isReverse ? "!" : "") + permission);
+
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			} else if (requirement instanceof InputResultRequirement) {
+				try {
+
+					String input = getField(requirement, "input");
+					String result = getField(requirement, "result");
+					RequirementType type = getField(requirement, "type");
+
+					PlaceholderAction action = convertAction(type);
+
+					String cPath = permissionPath + "placeholder_" + (index++) + ".";
+
+					configuration.set(cPath + "action", action.name());
+					configuration.set(cPath + "placeHolder", input);
+					configuration.set(cPath + "value", result);
+
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			} else if (requirement instanceof HasMoneyRequirement) {
+
+				try {
+
+					boolean invert = getField(requirement, "invert");
+					String placeholder = getField(requirement, "placeholder");
+					long amount = getField(requirement, "amount");
+
+					if (placeholder == null) {
+						placeholder = "%vault_eco_balance%";
+					}
+
+					String cPath = permissionPath + "placeholder_" + (index++) + ".";
+
+					PlaceholderAction action = invert ? PlaceholderAction.LOWER : PlaceholderAction.SUPERIOR_OR_EQUAL;
+					configuration.set(cPath + "action", action.name());
+					configuration.set(cPath + "placeHolder", placeholder);
+					configuration.set(cPath + "value", amount);
+
+				} catch (Exception e) {
+				}
+
+			} else if (requirement instanceof HasItemRequirement) {
+
+				try {
+
+					ItemWrapper itemWrapper = getField(requirement, "wrapper");
+
+					String cPath = permissionPath + "item_" + (index++) + ".";
+
+					configuration.set(cPath + "material", itemWrapper.getMaterial());
+					configuration.set(cPath + "amount", itemWrapper.getAmount());
+
+				} catch (Exception e) {
+				}
+
+			}
+		}
+
+		return true;
+	}
+
+	private void saveClickHandler(ClickHandler clickHandler, YamlConfiguration configuration, String path) {
+		List<String> messages = new ArrayList<>();
+		List<String> commands = new ArrayList<>();
+		List<String> consoleCommands = new ArrayList<>();
+
+		try {
+			List<ClickAction> actions = getField(clickHandler, "val$actions");
+			for (ClickAction action : actions) {
+				String value = action.getExecutable();
+				switch (action.getType()) {
+				case CONSOLE:
+					consoleCommands.add(value);
+					break;
+				case MESSAGE:
+					messages.add(value);
+					break;
+				case PLAYER:
+					commands.add(value);
+					break;
+				case PLAY_SOUND:
+					Optional<XSound> optional = XSound.matchXSound(value);
+					if (optional.isPresent()) {
+						configuration.set(path + "sound", optional.get().name());
+						configuration.set(path + "pitch", 1);
+						configuration.set(path + "volume", 1);
+					}
+					break;
+				case TAKE_MONEY:
+					consoleCommands.add("eco take %player% " + value);
+					break;
+				case GIVE_MONEY:
+					consoleCommands.add("eco give %player% " + value);
+					break;
+				default:
+					break;
+				}
+			}
+		} catch (Exception e) {
+		}
+
+		if (messages.size() > 0) {
+			configuration.set(path + "messages", changeColor(messages));
+		}
+
+		if (commands.size() > 0) {
+			configuration.set(path + "playerCommands", commands);
+		}
+
+		if (consoleCommands.size() > 0) {
+			configuration.set(path + "consoleCommands", consoleCommands);
+		}
+
 	}
 
 	/**
@@ -300,6 +485,7 @@ public class ConvertDeluxeMenu extends ZUtils {
 					case GIVE_EXP:
 						break;
 					case GIVE_MONEY:
+						consoleCommands.add("eco give %player% " + value);
 						break;
 					case GIVE_PERM:
 						break;
@@ -339,6 +525,7 @@ public class ConvertDeluxeMenu extends ZUtils {
 					case TAKE_EXP:
 						break;
 					case TAKE_MONEY:
+						consoleCommands.add("eco take %player% " + value);
 						break;
 					case TAKE_PERM:
 						break;
@@ -373,7 +560,6 @@ public class ConvertDeluxeMenu extends ZUtils {
 					configuration.set(path + "consoleLeftCommands", consoleCommands);
 				}
 			}
-
 		}
 	}
 
