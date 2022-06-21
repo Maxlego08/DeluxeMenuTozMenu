@@ -160,6 +160,10 @@ public class ConvertDeluxeMenu extends ZUtils {
 	 */
 	private void createCommand(Menu menu, File file, String name) throws IOException {
 
+		if (!menu.registersCommand()){
+			return;
+		}
+		
 		if (file.exists()) {
 			Logger.info("commands/convert/" + name + ".yml already exist, skip");
 			return;
@@ -255,6 +259,8 @@ public class ConvertDeluxeMenu extends ZUtils {
 			configuration.set(path + "update", true);
 		}
 
+		this.saveViewRequirement(item, configuration, path);
+
 		if (!this.saveClickRequirement(item.getClickRequirements(), "click_requirement", configuration, path,
 				item.getClickHandler(), ClickType.RIGHT, ClickType.LEFT)) {
 			this.saveClick(item.getClickHandler(), configuration, path, ClickType.UNKNOWN);
@@ -279,7 +285,6 @@ public class ConvertDeluxeMenu extends ZUtils {
 		this.saveClickRequirement(item.getMiddleClickRequirements(), "middle_click_requirement", configuration, path,
 				item.getMiddleClickHandler(), ClickType.MIDDLE);
 
-		this.saveViewRequirement(item, configuration, path);
 		this.saveItem(item, configuration, path + "item.");
 	}
 
@@ -301,7 +306,9 @@ public class ConvertDeluxeMenu extends ZUtils {
 
 		ClickHandler deny = requirements.getDenyHandler();
 
-		configuration.set(path + "type", "PERFORM_COMMAND");
+		if (configuration.getString(path + "type").equals("NONE")) {
+			configuration.set(path + "type", "PERFORM_COMMAND");
+		}
 
 		String currentPath = path + "actions." + name + ".";
 
