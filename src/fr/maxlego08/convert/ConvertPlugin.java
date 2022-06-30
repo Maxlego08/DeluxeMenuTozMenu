@@ -17,16 +17,14 @@ import fr.maxlego08.menu.command.commands.CommandMenu;
 public class ConvertPlugin extends JavaPlugin {
 
 	private MenuPlugin menuPlugin;
-	private ConvertDeluxeMenu convert;;
 
 	@Override
 	public void onEnable() {
 
 		this.menuPlugin = (MenuPlugin) Bukkit.getPluginManager().getPlugin("zMenu");
-		this.convert = new ConvertDeluxeMenu(this.menuPlugin);
 
 		CommandMenu commandMenu = this.menuPlugin.getCommandMenu();
-		commandMenu.addSubCommand(new CommandConvert(this.menuPlugin, this.convert));
+		commandMenu.addSubCommand(new CommandConvert(this.menuPlugin));
 
 	}
 
