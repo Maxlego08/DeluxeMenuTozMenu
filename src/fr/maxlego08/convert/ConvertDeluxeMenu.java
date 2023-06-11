@@ -243,7 +243,6 @@ public class ConvertDeluxeMenu extends ZUtils {
 			String path = button.getPath();
 			if (button.getSlots().size() > 1) {
 				configuration.set(path + "slot", null);
-				configuration.set(path + "type", "NONE_SLOT");
 				configuration.set(path + "slots", button.toRange());
 			}
 
@@ -260,7 +259,6 @@ public class ConvertDeluxeMenu extends ZUtils {
 	 */
 	private void saveButton(MenuItem item, YamlConfiguration configuration, String path) {
 
-		configuration.set(path + "type", "NONE");
 		configuration.set(path + "slot", item.getSlot());
 
 		if (item.updatePlaceholders()) {
@@ -313,10 +311,6 @@ public class ConvertDeluxeMenu extends ZUtils {
 		}
 
 		ClickHandler deny = requirements.getDenyHandler();
-
-		if (configuration.getString(path + "type").equals("NONE")) {
-			configuration.set(path + "type", "PERFORM_COMMAND");
-		}
 
 		String currentPath = path + "actions." + name + ".";
 
