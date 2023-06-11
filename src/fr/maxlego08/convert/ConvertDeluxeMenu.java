@@ -556,11 +556,9 @@ public class ConvertDeluxeMenu extends ZUtils {
 
 			if (commands.size() > 0) {
 				configuration.set(path + "commands", commands);
-				configuration.set(path + "type", "PERFORM_COMMAND");
 			}
 
 			if (consoleCommands.size() > 0) {
-				configuration.set(path + "type", "PERFORM_COMMAND");
 				if (clickType == ClickType.UNKNOWN) {
 					configuration.set(path + "consoleCommands", consoleCommands);
 				} else if (clickType == ClickType.RIGHT) {
