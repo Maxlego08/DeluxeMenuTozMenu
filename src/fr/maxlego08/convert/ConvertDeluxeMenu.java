@@ -41,6 +41,7 @@ import fr.maxlego08.menu.MenuPlugin;
 import fr.maxlego08.menu.api.enums.PlaceholderAction;
 import fr.maxlego08.menu.api.enums.XSound;
 import fr.maxlego08.menu.zcore.logger.Logger;
+import fr.maxlego08.menu.zcore.logger.Logger.LogType;
 import fr.maxlego08.menu.zcore.utils.ZUtils;
 import fr.maxlego08.menu.zcore.utils.nms.NMSUtils;
 
@@ -80,7 +81,10 @@ public class ConvertDeluxeMenu extends ZUtils {
 		}
 
 		Collection<Menu> menus = Menu.getAllMenus();
+		
 		message(sender, "§7Start of the conversion of §f" + menus.size() + " menu(s)§7.");
+		Logger.info("§7Start of the conversion of §f" + menus.size() + " menu(s)§7.");
+		
 		Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
 
 			for (Menu menu : menus) {
@@ -90,7 +94,7 @@ public class ConvertDeluxeMenu extends ZUtils {
 				InventoryType inventoryType = menu.getInventoryType();
 
 				if (inventoryType != null && inventoryType != InventoryType.PLAYER) {
-					Logger.info(inventoryType + " not supported in " + menu.getName() + " menu, ship");
+					Logger.info(inventoryType + " not supported in " + menu.getName() + " menu, ship", LogType.ERROR);
 					continue;
 				}
 
@@ -104,7 +108,7 @@ public class ConvertDeluxeMenu extends ZUtils {
 
 				File file = new File(folderInventories, fileName + ".yml");
 				if (file.exists()) {
-					Logger.info("inventories/convert/" + fileName + ".yml already exist, skip");
+					Logger.info("inventories/convert/" + fileName + ".yml already exist, skip", LogType.ERROR);
 					continue;
 				}
 
@@ -137,6 +141,7 @@ public class ConvertDeluxeMenu extends ZUtils {
 
 				try {
 					configuration.save(file);
+					Logger.info("Saved file: " + file.getAbsolutePath());
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
@@ -145,6 +150,9 @@ public class ConvertDeluxeMenu extends ZUtils {
 
 			message(sender, "§aConversion complete. §7Please check that your files have been converted correctly.");
 			message(sender, "§7Dont forget to run §f/zmenu reload§7.");
+			
+			Logger.info("§aConversion complete. §7Please check that your files have been converted correctly.", LogType.SUCCESS);
+			Logger.info("§7Dont forget to run §f/zmenu reload§7.", LogType.SUCCESS);
 			this.isRunning = false;
 		});
 

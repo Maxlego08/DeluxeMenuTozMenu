@@ -18,6 +18,7 @@ import de.kinglol12345.GUIPlus.gui.GUI;
 import de.kinglol12345.GUIPlus.gui.item.GItem;
 import fr.maxlego08.menu.MenuPlugin;
 import fr.maxlego08.menu.zcore.logger.Logger;
+import fr.maxlego08.menu.zcore.logger.Logger.LogType;
 import fr.maxlego08.menu.zcore.utils.ZUtils;
 import fr.maxlego08.menu.zcore.utils.loader.ItemStackLoader;
 import fr.maxlego08.menu.zcore.utils.loader.Loader;
@@ -57,7 +58,9 @@ public class ConvertGuiPlus extends ZUtils {
 		}
 
 		Map<String, GUI> guis = GUI.getLoadedGUIS();
+		
 		message(sender, "§7Start of the conversion of §f" + guis.size() + " menu(s)§7.");
+		Logger.info("§7Start of the conversion of §f" + guis.size() + " menu(s)§7.");
 
 		Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
 
@@ -68,7 +71,7 @@ public class ConvertGuiPlus extends ZUtils {
 
 				File file = new File(folderInventories, fileName + ".yml");
 				if (file.exists()) {
-					Logger.info("inventories/convert/" + fileName + ".yml already exist, skip");
+					Logger.info("inventories/convert/" + fileName + ".yml already exist, skip", LogType.ERROR);
 					continue;
 				}
 
@@ -94,6 +97,7 @@ public class ConvertGuiPlus extends ZUtils {
 
 				try {
 					configuration.save(file);
+					Logger.info("Saved file: " + file.getAbsolutePath());
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
@@ -101,6 +105,9 @@ public class ConvertGuiPlus extends ZUtils {
 
 			message(sender, "§aConversion complete. §7Please check that your files have been converted correctly.");
 			message(sender, "§7Dont forget to run §f/zmenu reload§7.");
+			
+			Logger.info("§aConversion complete. §7Please check that your files have been converted correctly.", LogType.SUCCESS);
+			Logger.info("§7Dont forget to run §f/zmenu reload§7.", LogType.SUCCESS);
 			this.isRunning = false;
 		});
 	}
@@ -140,7 +147,7 @@ public class ConvertGuiPlus extends ZUtils {
 	}
 
 	private void saveButton(GItem gItem, YamlConfiguration configuration, String path, ItemStack itemStack) {
-		
+		System.out.println("TO DO");
 	}
 
 	/**
