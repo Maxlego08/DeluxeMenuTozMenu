@@ -2,7 +2,7 @@ name: zMenuConvert
 author: Maxlego08
 main: fr.maxlego08.convert.ConvertPlugin
 website: https://groupez.dev/resources/zmenuconvert.266
-version: 1.0.0
+version: 1.0.2
 api-version: 1.13
 depend:
 - zMenu
