@@ -44,6 +44,7 @@ import fr.maxlego08.menu.zcore.logger.Logger;
 import fr.maxlego08.menu.zcore.logger.Logger.LogType;
 import fr.maxlego08.menu.zcore.utils.ZUtils;
 import fr.maxlego08.menu.zcore.utils.nms.NMSUtils;
+import fr.maxlego08.menu.zcore.utils.xseries.XSound;
 
 public class ConvertDeluxeMenu extends ZUtils {
 
@@ -829,7 +830,7 @@ public class ConvertDeluxeMenu extends ZUtils {
 	 */
 	private boolean alreadyExist(MenuItem item, String path) {
 
-		if (item.getMaterial() != null && item.getDisplayName() != null) {
+		if (item != null && item.getMaterial() != null && item.getDisplayName() != null) {
 
 			Button button = new Button(path, item.getMaterial(), item.getDisplayName(), item.getLore());
 

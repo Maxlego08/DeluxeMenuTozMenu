@@ -90,7 +90,7 @@ public class ConvertGuiPlus extends ZUtils {
 				configuration.set("items", "[]");
 
 				try {
-					this.loadItems(gui, configuration);
+					this.loadItems(gui, configuration, file);
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -112,7 +112,7 @@ public class ConvertGuiPlus extends ZUtils {
 		});
 	}
 
-	public void loadItems(GUI gui, YamlConfiguration configuration) {
+	public void loadItems(GUI gui, YamlConfiguration configuration, File file) {
 
 		for (Entry<Integer, GItem> entry : gui.getItems().entrySet()) {
 
@@ -128,7 +128,7 @@ public class ConvertGuiPlus extends ZUtils {
 
 				configuration.set(path + "type", "NONE");
 				configuration.set(path + "slot", slot);
-				loader.save(itemStack, configuration, path + "item.");
+				loader.save(itemStack, configuration, path + "item.", file);
 
 				this.saveButton(gItem, configuration, path, itemStack);
 			}
