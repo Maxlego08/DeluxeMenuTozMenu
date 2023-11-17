@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -16,7 +17,9 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Sound;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.event.inventory.ClickType;
@@ -31,6 +34,7 @@ import com.extendedclip.deluxemenus.requirement.HasItemRequirement;
 import com.extendedclip.deluxemenus.requirement.HasMoneyRequirement;
 import com.extendedclip.deluxemenus.requirement.HasPermissionRequirement;
 import com.extendedclip.deluxemenus.requirement.InputResultRequirement;
+import com.extendedclip.deluxemenus.requirement.RegexMatchesRequirement;
 import com.extendedclip.deluxemenus.requirement.Requirement;
 import com.extendedclip.deluxemenus.requirement.RequirementList;
 import com.extendedclip.deluxemenus.requirement.RequirementType;
@@ -39,7 +43,6 @@ import com.extendedclip.deluxemenus.utils.SkullUtils;
 
 import fr.maxlego08.menu.MenuPlugin;
 import fr.maxlego08.menu.api.enums.PlaceholderAction;
-import fr.maxlego08.menu.api.enums.XSound;
 import fr.maxlego08.menu.zcore.logger.Logger;
 import fr.maxlego08.menu.zcore.logger.Logger.LogType;
 import fr.maxlego08.menu.zcore.utils.ZUtils;
@@ -82,10 +85,10 @@ public class ConvertDeluxeMenu extends ZUtils {
 		}
 
 		Collection<Menu> menus = Menu.getAllMenus();
-		
+
 		message(sender, "§7Start of the conversion of §f" + menus.size() + " menu(s)§7.");
 		Logger.info("§7Start of the conversion of §f" + menus.size() + " menu(s)§7.");
-		
+
 		Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
 
 			for (Menu menu : menus) {
@@ -132,6 +135,9 @@ public class ConvertDeluxeMenu extends ZUtils {
 					}
 				} catch (Exception e1) {
 				}
+
+				this.saveOpenRequirement(configuration, menu);
+
 				configuration.set("items", "[]");
 
 				try {
@@ -151,12 +157,315 @@ public class ConvertDeluxeMenu extends ZUtils {
 
 			message(sender, "§aConversion complete. §7Please check that your files have been converted correctly.");
 			message(sender, "§7Dont forget to run §f/zmenu reload§7.");
-			
-			Logger.info("§aConversion complete. §7Please check that your files have been converted correctly.", LogType.SUCCESS);
+
+			Logger.info("§aConversion complete. §7Please check that your files have been converted correctly.",
+					LogType.SUCCESS);
 			Logger.info("§7Dont forget to run §f/zmenu reload§7.", LogType.SUCCESS);
 			this.isRunning = false;
 		});
 
+	}
+
+	/**
+	 * 
+	 * @param configuration
+	 * @param menu
+	 */
+	private void saveOpenRequirement(YamlConfiguration configuration, Menu menu) {
+		RequirementList requirementList = menu.getOpenRequirements();
+		List<Map<String, Object>> maps = toRequirementList(requirementList);
+		if (maps.size() > 0) {
+			configuration.set("open_requirement.requirements", maps);
+		}
+
+		List<Map<String, Object>> denyMaps = toAction(requirementList.getDenyHandler(), configuration, null);
+		denyMaps.addAll(toDenyList(requirementList, configuration, null));
+		if (denyMaps.size() > 0) {
+			configuration.set("open_requirement.deny", denyMaps);
+		}
+
+		List<Map<String, Object>> successMap = toSuccessList(requirementList, configuration, null);
+		if (successMap.size() > 0) {
+			configuration.set("open_requirement.success", denyMaps);
+		}
+	}
+
+	/**
+	 * 
+	 * @param configuration
+	 * @param menu
+	 * @param path
+	 */
+	private void saveViewRequirement(YamlConfiguration configuration, MenuItem menu, String path) {
+		RequirementList requirementList = menu.getViewRequirements();
+		if (requirementList == null)
+			return;
+
+		List<Map<String, Object>> maps = toRequirementList(requirementList);
+		if (maps.size() > 0) {
+			configuration.set(path + "view_requirement.requirements", maps);
+		}
+
+		List<Map<String, Object>> denyMaps = toAction(requirementList.getDenyHandler(), configuration, path);
+		denyMaps.addAll(toDenyList(requirementList, configuration, path));
+		if (denyMaps.size() > 0) {
+			configuration.set(path + "view_requirement.deny", denyMaps);
+		}
+
+		List<Map<String, Object>> successMap = toSuccessList(requirementList, configuration, path);
+		if (successMap.size() > 0) {
+			configuration.set(path + "view_requirement.success", denyMaps);
+		}
+	}
+
+	/**
+	 * 
+	 * @param configuration
+	 * @param requirementList
+	 * @param path
+	 * @param clickType
+	 */
+	private void saveClickRequirement(YamlConfiguration configuration, RequirementList requirementList, String path,
+			String name, ClickHandler clickHandler, ClickType... clickType) {
+
+		if (clickHandler == null && requirementList == null) {
+			return;
+		}
+
+		String currentPath = path + "click_requirement." + name + ".";
+		configuration.set(currentPath + "clicks",
+				Arrays.asList(clickType).stream().map(ClickType::name).collect(Collectors.toList()));
+
+		List<Map<String, Object>> maps = new ArrayList<>();
+		if (requirementList != null) {
+			maps = toRequirementList(requirementList);
+			if (maps.size() > 0) {
+				configuration.set(currentPath + "requirements", maps);
+			}
+		}
+
+		List<Map<String, Object>> denyMaps = new ArrayList<>();
+		if (requirementList != null) {
+			denyMaps = toAction(requirementList.getDenyHandler(), configuration, path);
+			denyMaps.addAll(toDenyList(requirementList, configuration, path));
+			if (denyMaps.size() > 0) {
+				configuration.set(currentPath + "deny", denyMaps);
+			}
+		}
+
+		List<Map<String, Object>> successMap = new ArrayList<>();
+
+		if (requirementList != null) {
+			successMap.addAll(toSuccessList(requirementList, configuration, path));
+		}
+
+		if (clickHandler != null) {
+			successMap.addAll(toAction(clickHandler, configuration, path));
+		}
+
+		if (successMap.size() > 0) {
+			configuration.set(currentPath + "success", successMap);
+		}
+
+		if (successMap.isEmpty() && denyMaps.isEmpty() && maps.isEmpty()) {
+			configuration.set(currentPath.substring(0, currentPath.length() - 1), null);
+
+			ConfigurationSection configurationSection = configuration
+					.getConfigurationSection(path + "click_requirement");
+			if (configurationSection == null || configurationSection.getKeys(false).isEmpty()) {
+				configuration.set(path + "click_requirement", null);
+			}
+		}
+	}
+
+	/**
+	 * Permet de sauvegarder les actions du click
+	 * 
+	 * @param item
+	 * @param configuration
+	 * @param path
+	 */
+	private List<Map<String, Object>> toAction(ClickHandler clickHandler, YamlConfiguration configuration,
+			String path) {
+
+		List<Map<String, Object>> maps = new ArrayList<>();
+
+		if (clickHandler != null) {
+
+			List<String> chat = new ArrayList<>();
+			List<String> broadcast = new ArrayList<>();
+			List<String> messages = new ArrayList<>();
+			List<String> commands = new ArrayList<>();
+			List<String> consoleCommands = new ArrayList<>();
+
+			try {
+				List<ClickAction> actions = getField(clickHandler, "val$actions");
+				for (ClickAction action : actions) {
+
+					String value = action.getExecutable();
+					switch (action.getType()) {
+					case BROADCAST:
+						broadcast.add(value);
+						break;
+					case BROADCAST_JSON:
+						break;
+					case BROADCAST_SOUND:
+					case BROADCAST_WORLD_SOUND: {
+						Map<String, Object> map = new HashMap<>();
+						map.put("type", "broadcast_sound");
+						transformStringToSound(map, value);
+						maps.add(map);
+						break;
+					}
+					case CHAT:
+						chat.add(value);
+						break;
+					case CLOSE: {
+						Map<String, Object> map = new HashMap<>();
+						map.put("type", "close");
+						maps.add(map);
+						break;
+					}
+					case CONNECT: {
+						Map<String, Object> map = new HashMap<>();
+						map.put("type", "connect");
+						map.put("server", value);
+						maps.add(map);
+						break;
+					}
+					case CONSOLE:
+						consoleCommands.add(value);
+						break;
+					case GIVE_EXP:
+						break;
+					case GIVE_MONEY:
+						consoleCommands.add("eco give %player% " + value);
+						break;
+					case GIVE_PERM:
+						break;
+					case JSON_BROADCAST:
+						break;
+					case JSON_MESSAGE:
+						break;
+					case MESSAGE:
+						messages.add(value);
+						break;
+					case META:
+						break;
+					case OPEN_GUI_MENU:
+					case OPEN_MENU: {
+						Map<String, Object> map = new HashMap<>();
+						map.put("type", "inventory");
+						map.put("inventory", value);
+						map.put("plugin", "zMenu");
+						maps.add(map);
+						break;
+					}
+					case PLACEHOLDER:
+						break;
+					case PLAYER:
+						commands.add(value);
+						break;
+					case PLAYER_COMMAND_EVENT:
+						break;
+					case PLAY_SOUND: {
+						Map<String, Object> map = new HashMap<>();
+						map.put("type", "sound");
+						transformStringToSound(map, value);
+						maps.add(map);
+						break;
+					}
+					case REFRESH:
+						if (path != null) {
+							configuration.set(path + "refreshOnClick", true);
+						}
+						break;
+					case TAKE_EXP:
+						break;
+					case TAKE_MONEY:
+						consoleCommands.add("eco take %player% " + value);
+						break;
+					case TAKE_PERM:
+						break;
+					default:
+						break;
+					}
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+
+			if (chat.size() > 0) {
+				Map<String, Object> map = new HashMap<>();
+				map.put("type", "chat");
+				map.put("messages", chat);
+				maps.add(map);
+			}
+
+			if (broadcast.size() > 0) {
+				Map<String, Object> map = new HashMap<>();
+				map.put("type", "broadcast");
+				map.put("messages", broadcast);
+				maps.add(map);
+			}
+
+			if (messages.size() > 0) {
+				Map<String, Object> map = new HashMap<>();
+				map.put("type", "message");
+				map.put("messages", messages);
+				maps.add(map);
+			}
+
+			if (commands.size() > 0) {
+				Map<String, Object> map = new HashMap<>();
+				map.put("type", "player_command");
+				map.put("commands", commands);
+				maps.add(map);
+			}
+
+			if (consoleCommands.size() > 0) {
+				Map<String, Object> map = new HashMap<>();
+				map.put("type", "console_command");
+				map.put("commands", consoleCommands);
+				maps.add(map);
+			}
+		}
+
+		return maps;
+	}
+
+	private void transformStringToSound(Map<String, Object> map, String executable) {
+		float volume = 1.0F;
+		float pitch = 1.0F;
+		Sound sound = null;
+		if (!executable.contains(" ")) {
+			try {
+				sound = Sound.valueOf(executable.toUpperCase());
+			} catch (IllegalArgumentException exception) {
+			}
+		} else {
+			String[] parts = executable.split(" ", 3);
+			try {
+				sound = Sound.valueOf(parts[0].toUpperCase());
+			} catch (IllegalArgumentException exception) {
+			}
+			if (parts.length == 3)
+				try {
+					pitch = Float.parseFloat(parts[2]);
+				} catch (NumberFormatException exception) {
+				}
+			try {
+				volume = Float.parseFloat(parts[1]);
+			} catch (NumberFormatException exception) {
+			}
+		}
+
+		Optional<XSound> optional = XSound.matchXSound(sound.name());
+		if (optional.isPresent()) {
+			map.put("sound", optional.get().name());
+			map.put("volume", volume);
+			map.put("pitch", pitch);
+		}
 	}
 
 	/**
@@ -169,10 +478,10 @@ public class ConvertDeluxeMenu extends ZUtils {
 	 */
 	private void createCommand(Menu menu, File file, String name) throws IOException {
 
-		if (!menu.registersCommand()){
+		if (!menu.registersCommand()) {
 			return;
 		}
-		
+
 		if (file.exists()) {
 			Logger.info("commands/convert/" + name + ".yml already exist, skip");
 			return;
@@ -266,79 +575,67 @@ public class ConvertDeluxeMenu extends ZUtils {
 			configuration.set(path + "update", true);
 		}
 
-		this.saveViewRequirement(item, configuration, path);
+		this.saveViewRequirement(configuration, item, path);
 
-		if (!this.saveClickRequirement(item.getClickRequirements(), "click_requirement", configuration, path,
-				item.getClickHandler(), ClickType.RIGHT, ClickType.LEFT)) {
-			this.saveClick(item.getClickHandler(), configuration, path, ClickType.UNKNOWN);
-		}
-
-		if (!this.saveClickRequirement(item.getRightClickRequirements(), "right_click_requirement", configuration, path,
-				item.getRightClickHandler(), ClickType.RIGHT)) {
-			this.saveClick(item.getRightClickHandler(), configuration, path, ClickType.RIGHT);
-		}
-
-		if (!this.saveClickRequirement(item.getLeftClickRequirements(), "left_click_requirement", configuration, path,
-				item.getLeftClickHandler(), ClickType.LEFT)) {
-			this.saveClick(item.getLeftClickHandler(), configuration, path, ClickType.LEFT);
-		}
-
-		this.saveClickRequirement(item.getShiftLeftClickRequirements(), "shift_left_click_requirement", configuration,
-				path, item.getShiftLeftClickHandler(), ClickType.SHIFT_LEFT);
-
-		this.saveClickRequirement(item.getShiftRightClickRequirements(), "shift_right_click_requirement", configuration,
-				path, item.getShiftRightClickHandler(), ClickType.SHIFT_RIGHT);
-
-		this.saveClickRequirement(item.getMiddleClickRequirements(), "middle_click_requirement", configuration, path,
+		this.saveClickRequirement(configuration, item.getClickRequirements(), path, "click", item.getClickHandler(),
+				ClickType.RIGHT, ClickType.LEFT, ClickType.SHIFT_LEFT, ClickType.SHIFT_RIGHT);
+		this.saveClickRequirement(configuration, item.getLeftClickRequirements(), path, "left_click",
+				item.getLeftClickHandler(), ClickType.LEFT);
+		this.saveClickRequirement(configuration, item.getRightClickRequirements(), path, "right_click",
+				item.getRightClickHandler(), ClickType.RIGHT);
+		this.saveClickRequirement(configuration, item.getShiftLeftClickRequirements(), path, "shift_left_click",
+				item.getShiftLeftClickHandler(), ClickType.SHIFT_LEFT);
+		this.saveClickRequirement(configuration, item.getShiftRightClickRequirements(), path, "shift_right_click",
+				item.getShiftRightClickHandler(), ClickType.SHIFT_RIGHT);
+		this.saveClickRequirement(configuration, item.getMiddleClickRequirements(), path, "middle_click",
 				item.getMiddleClickHandler(), ClickType.MIDDLE);
 
 		this.saveItem(item, configuration, path + "item.");
 	}
 
+	private List<Map<String, Object>> toSuccessList(RequirementList requirementList, YamlConfiguration configuration,
+			String path) {
+		List<Map<String, Object>> maps = new ArrayList<>();
+		for (Requirement requirement : requirementList.getRequirements()) {
+			maps.addAll(toAction(requirement.getSuccessHandler(), configuration, path));
+		}
+		return maps;
+	}
+
+	private List<Map<String, Object>> toDenyList(RequirementList requirementList, YamlConfiguration configuration,
+			String path) {
+		List<Map<String, Object>> maps = new ArrayList<>();
+		for (Requirement requirement : requirementList.getRequirements()) {
+			maps.addAll(toAction(requirement.getDenyHandler(), configuration, path));
+		}
+		return maps;
+	}
+
 	/**
-	 * Allows you to save a click with a requirement
+	 * Allows you to get requirement values
 	 * 
-	 * @param requirements
-	 * @param configuration
-	 * @param path
-	 * @param clickHandler
-	 * @return boolean
+	 * @param requirementList
+	 * @return values
 	 */
-	private boolean saveClickRequirement(RequirementList requirements, String name, YamlConfiguration configuration,
-			String path, ClickHandler allow, ClickType... clickTypes) {
+	private List<Map<String, Object>> toRequirementList(RequirementList requirementList) {
+		List<Map<String, Object>> maps = new ArrayList<>();
 
-		if (requirements == null || allow == null) {
-			return false;
-		}
-
-		ClickHandler deny = requirements.getDenyHandler();
-
-		String currentPath = path + "actions." + name + ".";
-
-		List<String> clicks = Arrays.asList(clickTypes).stream().map(ClickType::name).collect(Collectors.toList());
-		configuration.set(currentPath + "clicks", clicks);
-
-		this.saveClickHandler(allow, configuration, currentPath + "allow.");
-		if (deny != null) {
-			this.saveClickHandler(deny, configuration, currentPath + "deny.");
-		}
-
-		int index = 1;
-		String permissionPath = currentPath + "permissions.";
-
-		for (Requirement requirement : requirements.getRequirements()) {
+		for (Requirement requirement : requirementList.getRequirements()) {
 
 			if (requirement instanceof HasPermissionRequirement) {
 				try {
 
 					String permission = this.getField(requirement, "perm");
 					boolean isReverse = this.getField(requirement, "invert");
+					permission = (isReverse ? "!" : "") + permission;
 
-					String cPath = permissionPath + "permission_" + (index++) + ".";
-					configuration.set(cPath + "permission", (isReverse ? "!" : "") + permission);
+					Map<String, Object> map = new HashMap<>();
+					map.put("permission", permission);
+					map.put("type", "permission");
+					maps.add(map);
 
-				} catch (Exception e) {
-					e.printStackTrace();
+				} catch (Exception exception) {
+					exception.printStackTrace();
 				}
 			} else if (requirement instanceof InputResultRequirement) {
 				try {
@@ -349,14 +646,15 @@ public class ConvertDeluxeMenu extends ZUtils {
 
 					PlaceholderAction action = convertAction(type);
 
-					String cPath = permissionPath + "placeholder_" + (index++) + ".";
+					Map<String, Object> map = new HashMap<>();
+					map.put("value", result);
+					map.put("action", action.name());
+					map.put("placeholder", input);
+					map.put("type", "placeholder");
+					maps.add(map);
 
-					configuration.set(cPath + "action", action.name());
-					configuration.set(cPath + "placeHolder", input);
-					configuration.set(cPath + "value", result);
-
-				} catch (Exception e) {
-					e.printStackTrace();
+				} catch (Exception exception) {
+					exception.printStackTrace();
 				}
 			} else if (requirement instanceof HasMoneyRequirement) {
 
@@ -364,211 +662,60 @@ public class ConvertDeluxeMenu extends ZUtils {
 
 					boolean invert = getField(requirement, "invert");
 					String placeholder = getField(requirement, "placeholder");
-					long amount = getField(requirement, "amount");
+					Object amount = getField(requirement, "amount");
 
 					if (placeholder == null) {
 						placeholder = "%vault_eco_balance%";
 					}
 
-					String cPath = permissionPath + "placeholder_" + (index++) + ".";
-
 					PlaceholderAction action = invert ? PlaceholderAction.LOWER : PlaceholderAction.SUPERIOR_OR_EQUAL;
-					configuration.set(cPath + "action", action.name());
-					configuration.set(cPath + "placeHolder", placeholder);
-					configuration.set(cPath + "value", amount);
+					Map<String, Object> map = new HashMap<>();
+					map.put("value", amount);
+					map.put("action", action.name());
+					map.put("placeholder", placeholder);
+					map.put("type", "placeholder");
+					maps.add(map);
 
-				} catch (Exception e) {
+				} catch (Exception exception) {
+					exception.printStackTrace();
 				}
 
 			} else if (requirement instanceof HasItemRequirement) {
 
 				try {
-
 					ItemWrapper itemWrapper = getField(requirement, "wrapper");
+					Map<String, Object> map = new HashMap<>();
+					map.put("amount", itemWrapper.getAmount());
+					map.put("material", itemWrapper.getMaterial());
+					map.put("type", "item");
+					maps.add(map);
 
-					String cPath = permissionPath + "item_" + (index++) + ".";
-
-					configuration.set(cPath + "material", itemWrapper.getMaterial());
-					configuration.set(cPath + "amount", itemWrapper.getAmount());
-
-				} catch (Exception e) {
+				} catch (Exception exception) {
+					exception.printStackTrace();
 				}
 
-			}
-		}
+			} else if (requirement instanceof RegexMatchesRequirement) {
 
-		return true;
-	}
-
-	private void saveClickHandler(ClickHandler clickHandler, YamlConfiguration configuration, String path) {
-		List<String> messages = new ArrayList<>();
-		List<String> commands = new ArrayList<>();
-		List<String> consoleCommands = new ArrayList<>();
-
-		try {
-			List<ClickAction> actions = getField(clickHandler, "val$actions");
-			for (ClickAction action : actions) {
-				String value = action.getExecutable();
-				switch (action.getType()) {
-				case CONSOLE:
-					consoleCommands.add(value);
-					break;
-				case MESSAGE:
-					messages.add(value);
-					break;
-				case PLAYER:
-					commands.add(value);
-					break;
-				case PLAY_SOUND:
-					Optional<XSound> optional = XSound.matchXSound(value);
-					if (optional.isPresent()) {
-						configuration.set(path + "sound", optional.get().name());
-						configuration.set(path + "pitch", 1);
-						configuration.set(path + "volume", 1);
+				try {
+					Pattern pattern = getField(requirement, "pattern");
+					String input = getField(requirement, "input");
+					boolean invert = getField(requirement, "invert");
+					Map<String, Object> map = new HashMap<>();
+					if (invert) {
+						map.put("invert", invert);
 					}
-					break;
-				case TAKE_MONEY:
-					consoleCommands.add("eco take %player% " + value);
-					break;
-				case GIVE_MONEY:
-					consoleCommands.add("eco give %player% " + value);
-					break;
-				default:
-					break;
-				}
-			}
-		} catch (Exception e) {
-		}
+					map.put("input", input);
+					map.put("regex", pattern.pattern());
+					map.put("type", "regex");
+					maps.add(map);
 
-		if (messages.size() > 0) {
-			configuration.set(path + "messages", changeColor(messages));
-		}
-
-		if (commands.size() > 0) {
-			configuration.set(path + "playerCommands", commands);
-		}
-
-		if (consoleCommands.size() > 0) {
-			configuration.set(path + "consoleCommands", consoleCommands);
-		}
-
-	}
-
-	/**
-	 * Permet de sauvegarder les actions du click
-	 * 
-	 * @param item
-	 * @param configuration
-	 * @param path
-	 */
-	private void saveClick(ClickHandler clickHandler, YamlConfiguration configuration, String path,
-			ClickType clickType) {
-		if (clickHandler != null) {
-
-			List<String> messages = new ArrayList<>();
-			List<String> commands = new ArrayList<>();
-			List<String> consoleCommands = new ArrayList<>();
-
-			try {
-				List<ClickAction> actions = getField(clickHandler, "val$actions");
-				for (ClickAction action : actions) {
-					String value = action.getExecutable();
-					switch (action.getType()) {
-					case BROADCAST:
-						break;
-					case BROADCAST_JSON:
-						break;
-					case BROADCAST_SOUND:
-						break;
-					case BROADCAST_WORLD_SOUND:
-						break;
-					case CHAT:
-						break;
-					case CLOSE:
-						configuration.set(path + "closeInventory", true);
-						break;
-					case CONNECT:
-						break;
-					case CONSOLE:
-						consoleCommands.add(value);
-						break;
-					case GIVE_EXP:
-						break;
-					case GIVE_MONEY:
-						consoleCommands.add("eco give %player% " + value);
-						break;
-					case GIVE_PERM:
-						break;
-					case JSON_BROADCAST:
-						break;
-					case JSON_MESSAGE:
-						break;
-					case MESSAGE:
-						messages.add(value);
-						break;
-					case META:
-						break;
-					case OPEN_GUI_MENU:
-					case OPEN_MENU:
-						configuration.set(path + "type", "INVENTORY");
-						configuration.set(path + "inventory", value);
-						configuration.set(path + "plugin", "zMenu");
-						break;
-					case PLACEHOLDER:
-						break;
-					case PLAYER:
-						commands.add(value);
-						break;
-					case PLAYER_COMMAND_EVENT:
-						break;
-					case PLAY_SOUND:
-						Optional<XSound> optional = XSound.matchXSound(value);
-						if (optional.isPresent()) {
-							configuration.set(path + "sound", optional.get().name());
-							configuration.set(path + "pitch", 1);
-							configuration.set(path + "volume", 1);
-						}
-						break;
-					case REFRESH:
-						configuration.set(path + "refreshOnClick", true);
-						break;
-					case TAKE_EXP:
-						break;
-					case TAKE_MONEY:
-						consoleCommands.add("eco take %player% " + value);
-						break;
-					case TAKE_PERM:
-						break;
-					default:
-						break;
-					}
-				}
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-
-			if (configuration.getString(path + "type").equalsIgnoreCase("INVENTORY")) {
-				configuration.set(path + "closeInventory", null);
-			}
-
-			if (messages.size() > 0) {
-				configuration.set(path + "messages", changeColor(messages));
-			}
-
-			if (commands.size() > 0) {
-				configuration.set(path + "commands", commands);
-			}
-
-			if (consoleCommands.size() > 0) {
-				if (clickType == ClickType.UNKNOWN) {
-					configuration.set(path + "consoleCommands", consoleCommands);
-				} else if (clickType == ClickType.RIGHT) {
-					configuration.set(path + "consoleRightCommands", consoleCommands);
-				} else if (clickType == ClickType.LEFT) {
-					configuration.set(path + "consoleLeftCommands", consoleCommands);
+				} catch (Exception exception) {
+					exception.printStackTrace();
 				}
 			}
 		}
+
+		return maps;
 	}
 
 	/**
@@ -699,68 +846,6 @@ public class ConvertDeluxeMenu extends ZUtils {
 
 		if (flags.size() > 0) {
 			configuration.set(path + "flags", flags.stream().map(ItemFlag::name).collect(Collectors.toList()));
-		}
-	}
-
-	/**
-	 * Allows you to save view requirements
-	 * 
-	 * @param item
-	 * @param configuration
-	 * @param path
-	 */
-	private void saveViewRequirement(MenuItem item, YamlConfiguration configuration, String path) {
-
-		RequirementList requirements = item.getViewRequirements();
-		if (requirements == null) {
-			return;
-		}
-
-		for (Requirement requirement : requirements.getRequirements()) {
-			if (requirement instanceof HasPermissionRequirement) {
-				try {
-					String permission = this.getField(requirement, "perm");
-					boolean isReverse = this.getField(requirement, "invert");
-					configuration.set(path + "permission", (isReverse ? "!" : "") + permission);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			} else if (requirement instanceof InputResultRequirement) {
-				try {
-
-					String input = getField(requirement, "input");
-					String result = getField(requirement, "result");
-					RequirementType type = getField(requirement, "type");
-
-					PlaceholderAction action = convertAction(type);
-					configuration.set(path + "action", action.name());
-					configuration.set(path + "placeHolder", input);
-					configuration.set(path + "value", result);
-
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			} else if (requirement instanceof HasMoneyRequirement) {
-
-				try {
-
-					boolean invert = getField(requirement, "invert");
-					String placeholder = getField(requirement, "placeholder");
-					long amount = getField(requirement, "amount");
-
-					if (placeholder == null) {
-						placeholder = "%vault_eco_balance%";
-					}
-
-					PlaceholderAction action = invert ? PlaceholderAction.LOWER : PlaceholderAction.SUPERIOR_OR_EQUAL;
-					configuration.set(path + "action", action.name());
-					configuration.set(path + "placeHolder", placeholder);
-					configuration.set(path + "value", amount);
-
-				} catch (Exception e) {
-				}
-
-			}
 		}
 	}
 
