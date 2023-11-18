@@ -173,20 +173,26 @@ public class ConvertDeluxeMenu extends ZUtils {
 	 */
 	private void saveOpenRequirement(YamlConfiguration configuration, Menu menu) {
 		RequirementList requirementList = menu.getOpenRequirements();
+		
+		if (requirementList == null) return;
+		
 		List<Map<String, Object>> maps = toRequirementList(requirementList);
 		if (maps.size() > 0) {
 			configuration.set("open_requirement.requirements", maps);
 		}
 
-		List<Map<String, Object>> denyMaps = toAction(requirementList.getDenyHandler(), configuration, null);
-		denyMaps.addAll(toDenyList(requirementList, configuration, null));
-		if (denyMaps.size() > 0) {
-			configuration.set("open_requirement.deny", denyMaps);
+		ClickHandler clickHandler = requirementList.getDenyHandler();
+		if (clickHandler != null) {
+			List<Map<String, Object>> denyMaps = toAction(clickHandler, configuration, null);
+			denyMaps.addAll(toDenyList(requirementList, configuration, null));
+			if (denyMaps.size() > 0) {
+				configuration.set("open_requirement.deny", denyMaps);
+			}
 		}
 
 		List<Map<String, Object>> successMap = toSuccessList(requirementList, configuration, null);
 		if (successMap.size() > 0) {
-			configuration.set("open_requirement.success", denyMaps);
+			configuration.set("open_requirement.success", successMap);
 		}
 	}
 
@@ -620,6 +626,10 @@ public class ConvertDeluxeMenu extends ZUtils {
 	private List<Map<String, Object>> toRequirementList(RequirementList requirementList) {
 		List<Map<String, Object>> maps = new ArrayList<>();
 
+		if (requirementList == null) {
+			return maps;
+		}
+
 		for (Requirement requirement : requirementList.getRequirements()) {
 
 			if (requirement instanceof HasPermissionRequirement) {
@@ -762,6 +772,17 @@ public class ConvertDeluxeMenu extends ZUtils {
 				}
 
 			}
+		}
+		
+		String nbtInt = item.getNbtInt();
+		if (nbtInt != null && nbtInt.startsWith("CustomModelData:")){
+			int id = Integer.parseInt(nbtInt.replace("CustomModelData:", ""));
+			configuration.set(path + "modelId", id);
+		}
+		
+		int id = item.getCustomModelData();
+		if (id > 0){
+			configuration.set(path + "modelId", id);
 		}
 
 		if (item.isPlaceholderMaterial() && item.getPlaceholderMaterial() != null) {
