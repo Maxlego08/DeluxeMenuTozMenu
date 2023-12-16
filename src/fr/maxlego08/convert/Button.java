@@ -5,12 +5,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.bukkit.Material;
-
 public class Button {
 
 	private final String path;
-	private final Material material;
+	private final String material;
 	private final String displayName;
 	private final List<String> lore;
 	private final List<Integer> slots = new ArrayList<Integer>();
@@ -21,7 +19,7 @@ public class Button {
 	 * @param displayName
 	 * @param lore
 	 */
-	public Button(String path, Material material, String displayName, List<String> lore) {
+	public Button(String path, String material, String displayName, List<String> lore) {
 		super();
 		this.path = path;
 		this.material = material;
@@ -46,7 +44,7 @@ public class Button {
 	/**
 	 * @return the material
 	 */
-	public Material getMaterial() {
+	public String getMaterial() {
 		return material;
 	}
 
