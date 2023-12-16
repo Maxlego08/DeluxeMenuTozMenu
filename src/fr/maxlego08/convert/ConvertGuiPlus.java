@@ -306,7 +306,7 @@ public class ConvertGuiPlus extends ZUtils {
 	private boolean alreadyExist(ItemStack itemStack, String path, int slot) {
 
 		ItemMeta itemMeta = itemStack.getItemMeta();
-		Button button = new Button(path, itemStack.getType(), itemMeta.getDisplayName(), itemMeta.getLore());
+		Button button = new Button(path, itemStack.getType().name(), itemMeta.getDisplayName(), itemMeta.getLore());
 
 		Optional<Button> optional = this.buttons.stream().filter(e -> e.equals(button)).findFirst();
 

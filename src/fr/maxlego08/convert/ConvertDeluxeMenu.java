@@ -28,6 +28,7 @@ import org.bukkit.inventory.ItemFlag;
 
 import com.extendedclip.deluxemenus.action.ClickAction;
 import com.extendedclip.deluxemenus.action.ClickHandler;
+import com.extendedclip.deluxemenus.menu.HeadType;
 import com.extendedclip.deluxemenus.menu.Menu;
 import com.extendedclip.deluxemenus.menu.MenuItem;
 import com.extendedclip.deluxemenus.requirement.HasItemRequirement;
@@ -738,41 +739,49 @@ public class ConvertDeluxeMenu extends ZUtils {
 	 */
 	private void saveItem(MenuItem item, YamlConfiguration configuration, String path) {
 
-		if (item.getMaterial() != null) {
-			configuration.set(path + "material", item.getMaterial().name());
+		String material = item.getConfigMaterial().toLowerCase();
+		
+		if (item.getConfigMaterial() != null) {
+			configuration.set(path + "material", item.getConfigMaterial());
 		}
-
-		if (item.isHead() && item.getHeadOwner() != null) {
-			if (item.isBaseHead()) {
-
+		
+		Optional<HeadType> optional = HeadType.parseHeadType(material);
+		if (optional.isPresent()){
+			HeadType headType = optional.get();
+			String value = item.getConfigMaterial().substring(headType.getPrefix().length()); 
+			switch (headType) {
+			case BASE64:
+				configuration.set(path + "url", value);
+				break;
+			case HDB:
+				configuration.set(path + "material", "hdb:" + value);
+				break;
+			case NAMED:
+				configuration.set(path + "playerHead", value);
 				configuration.set(path + "material", playerHead().getType().name());
 				if (!NMSUtils.isNewVersion()) {
 					configuration.set(path + "data", "3");
 				}
-				configuration.set(path + "url", item.getHeadOwner());
-
-			} else if (item.isHeadDbHead()) {
-
-				configuration.set(path + "material", "hdb:" + item.getHeadOwner().replace("-", ":"));
-
-			} else if (item.isTextureHead()) {
-
-				String url = SkullUtils.getEncoded(item.getHeadOwner());
+				break;
+			case TEXTURE:
+				String url = SkullUtils.getEncoded(value);
 				configuration.set(path + "material", playerHead().getType().name());
 				if (!NMSUtils.isNewVersion()) {
 					configuration.set(path + "data", "3");
 				}
 				configuration.set(path + "url", url);
-
-			} else {
-
-				configuration.set(path + "playerHead", item.getHeadOwner());
-				configuration.set(path + "material", playerHead().getType().name());
-				if (!NMSUtils.isNewVersion()) {
-					configuration.set(path + "data", "3");
-				}
-
+				break;
+			default:
+				break;
 			}
+		}
+		
+		if (material.startsWith("itemsadder-")){
+			configuration.set(path + "material", "itemsadder:" + material.substring(11));
+		}
+		
+		if (material.startsWith("oraxen-")){
+			configuration.set(path + "material", "oraxen:" + material.substring(7));
 		}
 
 		String nbtInt = item.getNbtInt();
@@ -781,33 +790,33 @@ public class ConvertDeluxeMenu extends ZUtils {
 			configuration.set(path + "modelID", id);
 		}
 
-		int id = item.getCustomModelData();
-		if (id > 0) {
-			configuration.set(path + "modelID", id);
+		String modelId = item.getCustomModelData();
+		if (modelId != null) {
+			configuration.set(path + "modelID", modelId);
 		}
 
-		if (item.isPlaceholderMaterial() && item.getPlaceholderMaterial() != null) {
-			configuration.set(path + "material", item.getPlaceholderMaterial());
+		if (material.startsWith("placeholder-")) {
+			configuration.set(path + "material", item.getConfigMaterial().substring(12));
 		}
 
-		if (item.getAmount() > 1) {
-			configuration.set(path + "amount", item.getAmount());
+		if (item.getConfigAmount() > 1) {
+			configuration.set(path + "amount", item.getConfigAmount());
+		}
+		
+		if (item.getConfigDynamicAmount() != null) {
+			configuration.set(path + "amount", item.getConfigDynamicAmount());
 		}
 
-		if (item.getDynamicAmount() != null) {
-			configuration.set(path + "amount", item.getDynamicAmount());
+		if (item.getConfigData() > 0) {
+			configuration.set(path + "data", item.getConfigData());
 		}
 
-		if (item.getData() > 0) {
-			configuration.set(path + "data", item.getData());
+		if (item.getConfigDisplayName() != null) {
+			configuration.set(path + "name", changeColor(item.getConfigDisplayName()));
 		}
 
-		if (item.getDisplayName() != null) {
-			configuration.set(path + "name", changeColor(item.getDisplayName()));
-		}
-
-		if (item.getLore() != null) {
-			configuration.set(path + "lore", changeColor(item.getLore()));
+		if (item.getConfigLore() != null) {
+			configuration.set(path + "lore", changeColor(item.getConfigLore()));
 		}
 
 		this.saveEnchantments(item, configuration, path);
@@ -937,9 +946,9 @@ public class ConvertDeluxeMenu extends ZUtils {
 	 */
 	private boolean alreadyExist(MenuItem item, String path) {
 
-		if (item != null && item.getMaterial() != null && item.getDisplayName() != null) {
+		if (item != null && item.getConfigMaterial() != null && item.getConfigDisplayName() != null) {
 
-			Button button = new Button(path, item.getMaterial(), item.getDisplayName(), item.getLore());
+			Button button = new Button(path, item.getConfigMaterial(), item.getConfigDisplayName(), item.getConfigLore());
 
 			Optional<Button> optional = this.buttons.stream().filter(e -> e.equals(button)).findFirst();
 
